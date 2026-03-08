@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<extensions>
+    <details>
+        <title>FM Radio via RTL-SDR</title>
+    </details>
+    <plugins>
+        <plugin name="FMRadio" version="1.0" minTarget="7.6" maxTarget="*">
+            <title>FM Radio</title>
+            <desc>FM Radio reception via RTL-SDR and softfm daemon</desc>
+            <url>https://github.com/YOUR_USERNAME/lms-fm-radio/archive/refs/heads/main.zip</url>
+            <link>https://github.com/macsatcom/Lyrion_FM_Radio</link>
+            <sha><!-- update with sha256 of zip after each release --></sha>
+            <creator>Kasper S Nielsen</creator>
+            <creatorEmail>kasper@smsweb.dk</creatorEmail>
+        </plugin>
+    </plugins>
+</extensions>

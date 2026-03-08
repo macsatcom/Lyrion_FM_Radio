@@ -1,0 +1,21 @@
+<?xml version="1.0"?>
+<extension>
+    <n>PLUGIN_FMRADIO_MODULE_NAME</n>
+    <module>Plugins::FMRadio::Plugin</module>
+    <playerMenu>RADIO</playerMenu>
+
+    <description>PLUGIN_FMRADIO_MODULE_NAME_DESC</description>
+    <icon>plugins/FMRadio/html/images/FMRadio.png</icon>
+
+    <creator>Your Name</creator>
+    <optionsURL>plugins/FMRadio/settings/basic.html</optionsURL>
+
+    <defaultState>enabled</defaultState>
+    <version>1.0</version>
+
+    <targetApplication>
+        <id>SqueezeCenter</id>
+        <minVersion>7.6</minVersion>
+        <maxVersion>*</maxVersion>
+    </targetApplication>
+</extension>

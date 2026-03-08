@@ -1,0 +1,25 @@
+# String file for FMRadio plugin
+
+PLUGIN_FMRADIO_MODULE_NAME
+	DA	FM Radio
+	EN	FM Radio
+
+PLUGIN_FMRADIO_MODULE_NAME_DESC
+	DA	FM Radio modtagelse via RTL-SDR og softfm
+	EN	FM Radio reception via RTL-SDR and softfm
+
+PLUGIN_FMRADIO_SETTING_DAEMON_URL
+	DA	Daemon URL
+	EN	Daemon URL
+
+PLUGIN_FMRADIO_SETTING_ICECAST_URL
+	DA	Icecast Stream URL
+	EN	Icecast Stream URL
+
+PLUGIN_FMRADIO_SETTING_STATIONS
+	DA	Stationer (navn|MHz, én per linje)
+	EN	Stations (name|MHz, one per line)
+
+PLUGIN_FMRADIO_NO_STATIONS
+	DA	Ingen stationer fundet
+	EN	No stations found

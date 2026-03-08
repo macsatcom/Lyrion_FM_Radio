@@ -1,0 +1,15 @@
+[% PROCESS settings/header.html %]
+
+	[% WRAPPER setting title="PLUGIN_FMRADIO_SETTING_DAEMON_URL" %]
+		<input type="text" class="stdedit" name="daemon_url" value="[% prefs.daemon_url %]" size="60" />
+	[% END %]
+
+	[% WRAPPER setting title="PLUGIN_FMRADIO_SETTING_ICECAST_URL" %]
+		<input type="text" class="stdedit" name="icecast_url" value="[% prefs.icecast_url %]" size="60" />
+	[% END %]
+
+	[% WRAPPER setting title="PLUGIN_FMRADIO_SETTING_STATIONS" %]
+		<textarea class="stdedit" name="stations" rows="14" cols="60">[% prefs.stations %]</textarea>
+	[% END %]
+
+[% PROCESS settings/footer.html %]
