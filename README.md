@@ -156,4 +156,4 @@ The plugin will appear under **Radio → FM Radio** in LMS.
 
 ## License
 
-MIT
+GNU GPL
