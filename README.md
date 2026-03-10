@@ -134,10 +134,10 @@ curl -X POST http://localhost:8080/stop
 Add the following URL in LMS under **Settings → Plugins → Add repository**:
 
 ```
-https://raw.githubusercontent.com/YOUR_USERNAME/lms-fm-radio/main/repo.xml
+https://raw.githubusercontent.com/macsatcom/Lyrion_FM_Radio/main/repo.xml
 ```
 
-> Replace `YOUR_USERNAME` with your GitHub username. After adding the repository, FM Radio will appear in the plugin list and can be installed from there.
+After adding the repository, FM Radio will appear in the plugin list and can be installed from there.
 
 ### Plugin configuration
 
