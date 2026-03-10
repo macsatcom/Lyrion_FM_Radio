@@ -1,15 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <extensions>
     <details>
-        <title>FM Radio via RTL-SDR</title>
+        <title lang="EN">FM Radio via RTL-SDR</title>
     </details>
     <plugins>
         <plugin name="FMRadio" version="1.01" minTarget="7.6" maxTarget="*">
-            <title>FM Radio</title>
-            <desc>FM Radio reception via RTL-SDR and softfm daemon</desc>
+            <title lang="EN">FM Radio</title>
+            <desc lang="EN">FM Radio reception via RTL-SDR and NGSoftFM daemon</desc>
             <url>https://github.com/macsatcom/Lyrion_FM_Radio/releases/download/plugin-v1.01/FMRadio-1.01.zip</url>
             <link>https://github.com/macsatcom/Lyrion_FM_Radio</link>
-            <sha>d133dd802b6bdf4dae20a9089b40b33a6b3f1db219549ea7b93a53e2c797f5e7</sha>
+            <sha>4f633673f5c86728516bc450651c2539bc426a1c</sha>
             <creator>Kasper S Nielsen</creator>
             <creatorEmail>kasper@smsweb.dk</creatorEmail>
         </plugin>
