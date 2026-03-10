@@ -3,7 +3,7 @@ Stream FM radio to Lyrion Music Server, inclusive the option to change frequency
 
 FM Radio reception via RTL-SDR for Lyrion Music Server (LMS).
 
-Receives FM radio using an RTL-SDR USB dongle and [SoftFM](https://github.com/jorisvr/SoftFM), streams it to an Icecast server, and exposes an HTTP API for tuning. An LMS plugin integrates it into the Radio menu with a configurable station list.
+Receives FM radio using an RTL-SDR USB dongle and [NGSoftFM](https://github.com/f4exb/ngsoftfm), streams it to an Icecast server, and exposes an HTTP API for tuning. An LMS plugin integrates it into the Radio menu with a configurable station list.
 
 ![FM Radio plugin icon](LMSPlugin/FMRadio/HTML/EN/plugins/FMRadio/html/images/FMRadio_svg.png)
 
@@ -14,7 +14,7 @@ Receives FM radio using an RTL-SDR USB dongle and [SoftFM](https://github.com/jo
 ```
 RTL-SDR dongle
       ↓
-   SoftFM  (FM demodulation, stereo PCM)
+   NGSoftFM  (FM demodulation, stereo PCM)
       ↓
   named pipe
       ↓
@@ -33,18 +33,22 @@ RTL-SDR dongle
 
 - Linux server (Debian/Ubuntu recommended)
 - RTL-SDR USB dongle connected and working
-- [SoftFM](https://github.com/jorisvr/SoftFM) built and installed (see note below)
+- [NGSoftFM](https://github.com/f4exb/ngsoftfm) built and installed (see note below)
 - `ffmpeg` installed (`apt install ffmpeg`)
 - Icecast2 server running (`apt install icecast2`)
 - Lyrion Music Server 8.x or 9.x
 
-> **Note:** Getting your RTL-SDR dongle working and building SoftFM is outside the scope of this guide. See the [rtl-sdr quickstart](https://www.rtl-sdr.com/rtl-sdr-quick-start-guide/) and the [SoftFM README](https://github.com/jorisvr/SoftFM) for instructions. Verify your setup works by running `softfm -t rtlsdr -c freq=90800000 -R -` before proceeding.
+### RTL-SDR USB dongle
+
+RTL-SDR is a type of software-defined radio (SDR) that uses a cheap DVB-T TV tuner dongle as a wideband radio receiver. Originally designed for receiving digital TV, these dongles can be repurposed to receive a wide range of radio signals — including FM radio — when used with the right software. A basic dongle from China costing around 10 EUR works perfectly fine for FM reception.
+
+> **Note:** Getting your RTL-SDR dongle working and building NGSoftFM is outside the scope of this guide. See the [rtl-sdr quickstart](https://www.rtl-sdr.com/rtl-sdr-quick-start-guide/) and the [NGSoftFM README](https://github.com/f4exb/ngsoftfm) for instructions. Verify your setup works by running `softfm -t rtlsdr -c freq=90800000 -R -` before proceeding.
 
 ---
 
 ## Daemon Setup
 
-The daemon (`fm-daemon.py`) controls SoftFM and ffmpeg, and exposes an HTTP API for tuning.
+The daemon (`fm-daemon.py`) controls NGSoftFM and ffmpeg, and exposes an HTTP API for tuning.
 
 ### 1. Configure
 
