@@ -5,7 +5,7 @@ FM Radio reception via RTL-SDR for Lyrion Music Server (LMS).
 
 Receives FM radio using an RTL-SDR USB dongle and [SoftFM](https://github.com/jorisvr/SoftFM), streams it to an Icecast server, and exposes an HTTP API for tuning. An LMS plugin integrates it into the Radio menu with a configurable station list.
 
-![FM Radio plugin icon](LMSPlugin/FMRadio/HTML/EN/plugins/FMRadio/html/images/FMRadio.png)
+![FM Radio plugin icon](LMSPlugin/FMRadio/HTML/EN/plugins/FMRadio/html/images/FMRadio_svg.png)
 
 ---
 
@@ -121,7 +121,7 @@ curl -X POST http://localhost:8080/stop
    - Standard: `/usr/share/squeezeboxserver/Plugins/FMRadio`
 
 2. Add your station icon (optional):
-   Place a PNG file at `LMSPlugin/FMRadio/HTML/EN/plugins/FMRadio/html/images/FMRadio.png`
+   Place a PNG file at `LMSPlugin/FMRadio/HTML/EN/plugins/FMRadio/html/images/FMRadio_svg.png`
 
 3. Restart LMS.
 

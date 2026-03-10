@@ -5,13 +5,13 @@
     <playerMenu>RADIO</playerMenu>
 
     <description>PLUGIN_FMRADIO_MODULE_NAME_DESC</description>
-    <icon>plugins/FMRadio/html/images/FMRadio.png</icon>
+    <icon>plugins/FMRadio/html/images/FMRadio_svg.png</icon>
 
     <creator>Your Name</creator>
     <optionsURL>plugins/FMRadio/settings/basic.html</optionsURL>
 
     <defaultState>enabled</defaultState>
-    <version>1.0</version>
+    <version>1.01</version>
 
     <targetApplication>
         <id>SqueezeCenter</id>
