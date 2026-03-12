@@ -5,6 +5,10 @@ Controls softfm + ffmpeg pipeline and streams to Icecast.
 Provides an HTTP API for tuning and stream control.
 
 See README.md for setup instructions.
+
+Configuration: edit the constants below, or override any of them with environment
+variables (useful for Docker). The --device / -d flag selects which RTL-SDR dongle
+to use when multiple are connected.
 """
 
 import os
@@ -15,28 +19,32 @@ import subprocess
 import threading
 import time
 import json
+import argparse
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from urllib.parse import urlparse, parse_qs, urlencode
 import urllib.parse
 import urllib.request
 
 # ─── Configuration ────────────────────────────────────────────────────────────
-# Edit these values to match your setup
+# Edit these values to match your setup, or override via environment variables.
 
-SOFTFM_BIN         = "/usr/local/bin/softfm"       # Path to softfm binary
-FIFO_PATH          = "/run/fm_pipe"                 # Named pipe (created automatically)
+SOFTFM_BIN         = os.environ.get("SOFTFM_BIN",         "/usr/local/bin/softfm")
+FIFO_PATH          = os.environ.get("FIFO_PATH",           "/run/fm_pipe")
 
-ICECAST_HOST       = "your-icecast-host"            # <-- your Icecast hostname or IP
-ICECAST_PORT       = 8000                           # <-- your Icecast port
-ICECAST_MOUNT      = "/fm"                          # <-- your Icecast mount point
-ICECAST_SOURCE     = "your-source-password"         # <-- your Icecast source password
-ICECAST_ADMIN_USER = "admin"                        # <-- your Icecast admin username
-ICECAST_ADMIN_PASS = "your-admin-password"          # <-- your Icecast admin password
+ICECAST_HOST       = os.environ.get("ICECAST_HOST",        "your-icecast-host")
+ICECAST_PORT       = int(os.environ.get("ICECAST_PORT",    "8000"))
+ICECAST_MOUNT      = os.environ.get("ICECAST_MOUNT",       "/fm")
+ICECAST_SOURCE     = os.environ.get("ICECAST_SOURCE",      "your-source-password")
+ICECAST_ADMIN_USER = os.environ.get("ICECAST_ADMIN_USER",  "admin")
+ICECAST_ADMIN_PASS = os.environ.get("ICECAST_ADMIN_PASS",  "your-admin-password")
 
-DAEMON_PORT        = 8080                           # <-- port for this daemon's HTTP API
+DAEMON_PORT        = int(os.environ.get("DAEMON_PORT",     "8080"))
 
 # Default startup frequency in Hz (e.g. 90800000 = 90.8 MHz)
-STARTUP_FREQ       = 90800000                       # <-- change to your preferred startup station
+STARTUP_FREQ       = int(os.environ.get("STARTUP_FREQ",    "90800000"))
+
+# RTL-SDR device index (0 = first dongle). Override with --device / -d or RTL_DEVICE env var.
+RTL_DEVICE         = int(os.environ.get("RTL_DEVICE",      "0"))
 
 # ─── State ────────────────────────────────────────────────────────────────────
 
@@ -127,9 +135,9 @@ def start_softfm(freq):
     stop_softfm()
     time.sleep(0.3)
     softfm_proc = subprocess.Popen([
-        SOFTFM_BIN, "-t", "rtlsdr", "-c", f"freq={freq}", "-R", "-",
+        SOFTFM_BIN, "-t", "rtlsdr", "-d", str(RTL_DEVICE), "-c", f"freq={freq}", "-R", "-",
     ], stdout=open(FIFO_PATH, "wb"), stderr=subprocess.DEVNULL)
-    print(f"[daemon] softfm tuned to {freq / 1_000_000:.1f} MHz")
+    print(f"[daemon] softfm tuned to {freq / 1_000_000:.1f} MHz (device {RTL_DEVICE})")
 
 def stop_ffmpeg():
     global ffmpeg_proc
@@ -239,9 +247,22 @@ def shutdown_handler(sig, frame):
     os._exit(0)
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="FM Radio Daemon")
+    parser.add_argument(
+        "-d", "--device",
+        type=int,
+        default=RTL_DEVICE,
+        metavar="INDEX",
+        help="RTL-SDR device index to use (default: %(default)s). "
+             "Run 'rtl_test' to list connected devices.",
+    )
+    args = parser.parse_args()
+    RTL_DEVICE = args.device
+
     signal.signal(signal.SIGINT,  shutdown_handler)
     signal.signal(signal.SIGTERM, shutdown_handler)
 
+    print(f"[daemon] using RTL-SDR device index {RTL_DEVICE}")
     print("[daemon] starting ffmpeg pipeline...")
     start_ffmpeg(freq=STARTUP_FREQ)
 

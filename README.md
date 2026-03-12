@@ -29,26 +29,93 @@ RTL-SDR dongle
 
 ---
 
-## Prerequisites
+## RTL-SDR dongle
+
+RTL-SDR is a type of software-defined radio (SDR) that uses a cheap DVB-T TV tuner dongle as a wideband radio receiver. Originally designed for receiving digital TV, these dongles can be repurposed to receive a wide range of radio signals — including FM radio — when used with the right software. A basic dongle from China costing around 10 EUR works perfectly fine for FM reception.
+
+### Blacklisting the DVB kernel drivers (recommended)
+
+Linux automatically loads the `dvb_usb_rtl28xxu` and `rtl2832` kernel drivers when you plug in an RTL-SDR dongle. These drivers claim the device and can prevent SDR software from accessing it.
+
+The most reliable fix is to blacklist those drivers on the host:
+
+```bash
+echo -e "blacklist dvb_usb_rtl28xxu\nblacklist rtl2832\nblacklist rtl2830" \
+    | sudo tee /etc/modprobe.d/blacklist-rtlsdr.conf
+sudo modprobe -r dvb_usb_rtl28xxu rtl2832 rtl2830   # unload if currently loaded
+```
+
+Re-plug the dongle and verify with `rtl_test`.
+
+> **Docker users:** Blacklisting is still recommended, but not strictly required. The Docker container runs in privileged mode, which lets librtlsdr call `libusb_detach_kernel_driver()` and claim the dongle from the DVB driver automatically. This works in most cases — but blacklisting avoids any edge cases, especially after re-plugging the dongle.
+
+---
+
+## Option A — Docker (recommended for new users)
+
+This is the easiest way to get started. Everything runs in a single container: NGSoftFM, ffmpeg, and Icecast are all included — no manual software installation needed.
+
+### Prerequisites
+
+- Docker and Docker Compose installed
+- RTL-SDR dongle connected to the host
+- DVB kernel drivers blacklisted (see above — optional but recommended)
+
+### Quickstart
+
+```bash
+git clone https://github.com/macsatcom/Lyrion_FM_Radio.git
+cd Lyrion_FM_Radio/docker
+```
+
+Edit `docker-compose.yml` and change the passwords and startup frequency:
+
+```yaml
+environment:
+  ICECAST_SOURCE:      changeme          # pick a source password
+  ICECAST_ADMIN_PASS:  changeme_admin    # pick an admin password
+  STARTUP_FREQ:        "90800000"        # startup frequency in Hz (90.8 MHz)
+  RTL_DEVICE:          "0"              # RTL-SDR device index (0 = first dongle)
+```
+
+Then build and start:
+
+```bash
+docker compose up --build
+```
+
+The first build takes a few minutes (NGSoftFM is compiled from source). Subsequent starts are fast.
+
+Once running:
+- FM Daemon API: `http://<host-ip>:8080`
+- Icecast stream: `http://<host-ip>:8000/fm`
+
+### Multiple RTL-SDR dongles
+
+If you have more than one dongle connected, set `RTL_DEVICE` to the index of the one you want to use (`0`, `1`, `2`, …). Run `rtl_test` on the host to list connected devices and their indices.
+
+### Stopping
+
+```bash
+docker compose down
+```
+
+---
+
+## Option B — Manual installation
+
+Use this if you prefer to run the daemon directly on your server without Docker, or if you already have NGSoftFM and Icecast set up.
+
+### Prerequisites
 
 - Linux server (Debian/Ubuntu recommended)
 - RTL-SDR USB dongle connected and working
-- [NGSoftFM](https://github.com/f4exb/ngsoftfm) built and installed (see note below)
+- [NGSoftFM](https://github.com/f4exb/ngsoftfm) built and installed
 - `ffmpeg` installed (`apt install ffmpeg`)
 - Icecast2 server running (`apt install icecast2`)
 - Lyrion Music Server 8.x or 9.x
 
-### RTL-SDR USB dongle
-
-RTL-SDR is a type of software-defined radio (SDR) that uses a cheap DVB-T TV tuner dongle as a wideband radio receiver. Originally designed for receiving digital TV, these dongles can be repurposed to receive a wide range of radio signals — including FM radio — when used with the right software. A basic dongle from China costing around 10 EUR works perfectly fine for FM reception.
-
 > **Note:** Getting your RTL-SDR dongle working and building NGSoftFM is outside the scope of this guide. See the [rtl-sdr quickstart](https://www.rtl-sdr.com/rtl-sdr-quick-start-guide/) and the [NGSoftFM README](https://github.com/f4exb/ngsoftfm) for instructions. Verify your setup works by running `softfm -t rtlsdr -c freq=90800000 -R -` before proceeding.
-
----
-
-## Daemon Setup
-
-The daemon (`fm-daemon.py`) controls NGSoftFM and ffmpeg, and exposes an HTTP API for tuning.
 
 ### 1. Configure
 
@@ -88,6 +155,20 @@ Check that it is running:
 sudo systemctl status fm-daemon
 ```
 
+### Multiple RTL-SDR dongles
+
+If you have more than one dongle connected, use the `--device` / `-d` flag to select which one to use:
+
+```bash
+# List connected devices
+rtl_test
+
+# Run daemon on device index 1
+python3 /usr/local/bin/fm-daemon.py --device 1
+```
+
+To make this permanent, add `--device 1` to the `ExecStart` line in `daemon/fm-daemon.service`.
+
 ### 4. Test the API
 
 ```bash
@@ -104,7 +185,9 @@ curl -X POST "http://localhost:8080/tune?freq=93900000"
 curl -X POST http://localhost:8080/stop
 ```
 
-### API reference
+---
+
+## API reference
 
 | Method | Path | Description |
 |--------|------|-------------|
@@ -121,13 +204,10 @@ curl -X POST http://localhost:8080/stop
 ### Manual install
 
 1. Copy the `LMSPlugin/FMRadio` folder into your LMS plugin directory:
-   - Docker: `/config/cache/Plugins/FMRadio`
+   - Docker LMS: `/config/cache/Plugins/FMRadio`
    - Standard: `/usr/share/squeezeboxserver/Plugins/FMRadio`
 
-2. Add your station icon (optional):
-   Place a PNG file at `LMSPlugin/FMRadio/HTML/EN/plugins/FMRadio/html/images/FMRadio_svg.png`
-
-3. Restart LMS.
+2. Restart LMS.
 
 ### Via external repository
 
