@@ -23,13 +23,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         gettext-base \
     && rm -rf /var/lib/apt/lists/*
 
-# ── Build SoftFM from source ──────────────────────────────────────────────────
-# Using jorisvr/SoftFM — produces the 'softfm' binary used by the daemon.
-RUN git clone --depth 1 https://github.com/jorisvr/SoftFM.git /tmp/softfm \
-    && cmake -S /tmp/softfm -B /tmp/softfm/build -DCMAKE_BUILD_TYPE=Release \
-    && cmake --build /tmp/softfm/build -j$(nproc) \
-    && install -m 755 /tmp/softfm/build/softfm /usr/local/bin/softfm \
-    && rm -rf /tmp/softfm
+# ── Build NGSoftFM from source ────────────────────────────────────────────────
+# Using f4exb/ngsoftfm — produces the 'ngsoftfm' binary; installed as 'softfm'.
+RUN git clone --depth 1 https://github.com/f4exb/ngsoftfm.git /tmp/ngsoftfm \
+    && cmake -S /tmp/ngsoftfm -B /tmp/ngsoftfm/build -DCMAKE_BUILD_TYPE=Release \
+    && cmake --build /tmp/ngsoftfm/build -j$(nproc) \
+    && install -m 755 /tmp/ngsoftfm/build/ngsoftfm /usr/local/bin/softfm \
+    && rm -rf /tmp/ngsoftfm
 
 # ── Application files ─────────────────────────────────────────────────────────
 COPY daemon/fm-daemon.py        /usr/local/bin/fm-daemon.py
