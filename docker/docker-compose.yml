@@ -10,24 +10,21 @@ services:
     devices:
       - /dev/bus/usb:/dev/bus/usb   # passes all USB devices into the container
     ports:
-      - "8080:8080"   # FM Daemon HTTP API
-      - "8000:8000"   # Icecast stream — only needed when ICECAST_MODE=internal
+      - "${DAEMON_PORT:-8080}:${DAEMON_PORT:-8080}"   # FM Daemon HTTP API
+      - "${ICECAST_PORT:-8000}:${ICECAST_PORT:-8000}" # Icecast stream — only needed when ICECAST_MODE=internal
     environment:
       # ── Icecast mode ────────────────────────────────────────────────────────
       # 'internal'  — start Icecast inside this container (default)
-      # 'external'  — use an existing Icecast server; set ICECAST_HOST below
-      ICECAST_MODE:        internal
-
-      # Required when ICECAST_MODE=external; ignored when internal (always localhost)
-      #ICECAST_HOST:       192.168.1.50
-
+      # 'external'  — use an existing Icecast server; set ICECAST_HOST in .env
+      ICECAST_MODE:       ${ICECAST_MODE:-internal}
+      ICECAST_HOST:       ${ICECAST_HOST:-}
       # ── Icecast credentials / mount ─────────────────────────────────────────
-      ICECAST_SOURCE:      changeme          # source password (ffmpeg → Icecast)
-      ICECAST_ADMIN_PASS:  changeme_admin    # Icecast web admin password (internal only)
-      ICECAST_PORT:        "8000"
-      ICECAST_MOUNT:       /fm
+      ICECAST_SOURCE:     ${ICECAST_SOURCE:-changeme}
+      ICECAST_ADMIN_PASS: ${ICECAST_ADMIN_PASS:-changeme_admin}
+      ICECAST_PORT:       ${ICECAST_PORT:-8000}
+      ICECAST_MOUNT:      ${ICECAST_MOUNT:-/fm}
       # ── Daemon ──────────────────────────────────────────────────────────────
-      STARTUP_FREQ:        "90800000"        # startup frequency in Hz (90.8 MHz)
-      RTL_DEVICE:          "0"              # RTL-SDR device index (0 = first dongle)
-      DAEMON_PORT:         "8080"
+      STARTUP_FREQ:       ${STARTUP_FREQ:-90800000}
+      RTL_DEVICE:         ${RTL_DEVICE:-0}
+      DAEMON_PORT:        ${DAEMON_PORT:-8080}
     restart: unless-stopped
