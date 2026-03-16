@@ -55,27 +55,56 @@ Re-plug the dongle and verify with `rtl_test`.
 
 This is the easiest way to get started. Everything runs in a single container: NGSoftFM, ffmpeg, and Icecast are all included — no manual software installation needed.
 
+Pre-built images for **amd64** and **arm64** are published automatically to GitHub Container Registry on every release.
+
 ### Prerequisites
 
 - Docker and Docker Compose installed
 - RTL-SDR dongle connected to the host
 - DVB kernel drivers blacklisted (see above — optional but recommended)
 
-### Quickstart
+### Quickstart — pre-built image (easiest)
+
+Create a `docker-compose.yml` with the following content, adjust the values, and run `docker compose up`:
+
+```yaml
+services:
+  fm-radio:
+    image: ghcr.io/macsatcom/lyrion-fm-radio:latest
+    privileged: true
+    devices:
+      - /dev/bus/usb:/dev/bus/usb
+    ports:
+      - "8080:8080"   # FM Daemon HTTP API
+      - "8000:8000"   # Icecast stream (remove if using external Icecast)
+    environment:
+      ICECAST_MODE:       internal
+      ICECAST_SOURCE:     changeme
+      ICECAST_ADMIN_PASS: changeme_admin
+      ICECAST_PORT:       8000
+      ICECAST_MOUNT:      /fm
+      STARTUP_FREQ:       90800000
+      RTL_DEVICE:         0
+      DAEMON_PORT:        8080
+    restart: unless-stopped
+```
+
+```bash
+docker compose up
+```
+
+### Quickstart — build from source
 
 ```bash
 git clone https://github.com/macsatcom/Lyrion_FM_Radio.git
 cd Lyrion_FM_Radio/docker
 ```
 
-Edit `docker-compose.yml` and change the passwords and startup frequency:
+Copy and edit the environment file:
 
-```yaml
-environment:
-  ICECAST_SOURCE:      changeme          # pick a source password
-  ICECAST_ADMIN_PASS:  changeme_admin    # pick an admin password
-  STARTUP_FREQ:        "90800000"        # startup frequency in Hz (90.8 MHz)
-  RTL_DEVICE:          "0"              # RTL-SDR device index (0 = first dongle)
+```bash
+cp .env.example .env
+# edit .env with your values
 ```
 
 Then build and start:
