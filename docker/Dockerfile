@@ -20,19 +20,30 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         build-essential \
         git \
         ca-certificates \
+        pkg-config \
+        libasound2-dev \
+        libboost-program-options-dev \
+        libhackrf-dev \
+        libairspy-dev \
         gettext-base \
     && rm -rf /var/lib/apt/lists/*
 
+# ── Copy build-time helper before compiling NGSoftFM ─────────────────────────
+COPY docker/patch-cmake.py /tmp/patch-cmake.py
+
 # ── Build NGSoftFM from source ────────────────────────────────────────────────
-# Using f4exb/ngsoftfm — produces the 'ngsoftfm' binary; installed as 'softfm'.
+# Using f4exb/ngsoftfm — produces the 'softfm' binary used by the daemon.
+# BladeRFSource.cpp uses a deprecated API incompatible with Debian bookworm's
+# libbladerf; we only need RTL-SDR, so it is patched out before building.
 RUN git clone --depth 1 https://github.com/f4exb/ngsoftfm.git /tmp/ngsoftfm \
+    && python3 /tmp/patch-cmake.py /tmp/ngsoftfm \
     && cmake -S /tmp/ngsoftfm -B /tmp/ngsoftfm/build -DCMAKE_BUILD_TYPE=Release \
-    && cmake --build /tmp/ngsoftfm/build -j$(nproc) \
-    && install -m 755 /tmp/ngsoftfm/build/ngsoftfm /usr/local/bin/softfm \
-    && rm -rf /tmp/ngsoftfm
+    && cmake --build /tmp/ngsoftfm/build --target softfm -j$(nproc) \
+    && install -m 755 /tmp/ngsoftfm/build/softfm /usr/local/bin/softfm \
+    && rm -rf /tmp/ngsoftfm /tmp/patch-cmake.py
 
 # ── Application files ─────────────────────────────────────────────────────────
-COPY daemon/fm-daemon.py        /usr/local/bin/fm-daemon.py
+COPY daemon/fm-daemon.py         /usr/local/bin/fm-daemon.py
 COPY docker/icecast.xml.template /etc/icecast.xml.template
 COPY docker/entrypoint.sh        /entrypoint.sh
 
