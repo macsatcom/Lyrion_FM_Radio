@@ -65,7 +65,11 @@ Pre-built images for **amd64** and **arm64** are published automatically to GitH
 
 ### Quickstart — pre-built image (easiest)
 
-Create a `docker-compose.yml` with the following content, adjust the values, and run `docker compose up`:
+Create a `docker-compose.yml`, adjust the values, and run `docker compose up`.
+
+#### With built-in Icecast
+
+The container runs its own Icecast server. Listeners connect directly to the container.
 
 ```yaml
 services:
@@ -76,11 +80,36 @@ services:
       - /dev/bus/usb:/dev/bus/usb
     ports:
       - "8080:8080"   # FM Daemon HTTP API
-      - "8000:8000"   # Icecast stream (remove if using external Icecast)
+      - "8000:8000"   # Icecast stream
     environment:
       ICECAST_MODE:       internal
       ICECAST_SOURCE:     changeme
       ICECAST_ADMIN_PASS: changeme_admin
+      ICECAST_PORT:       8000
+      ICECAST_MOUNT:      /fm
+      STARTUP_FREQ:       90800000
+      RTL_DEVICE:         0
+      DAEMON_PORT:        8080
+    restart: unless-stopped
+```
+
+#### With an existing Icecast server
+
+The container streams to an Icecast server already running on your network. No port 8000 mapping needed — listeners connect to your existing server.
+
+```yaml
+services:
+  fm-radio:
+    image: ghcr.io/macsatcom/lyrion-fm-radio:latest
+    privileged: true
+    devices:
+      - /dev/bus/usb:/dev/bus/usb
+    ports:
+      - "8080:8080"   # FM Daemon HTTP API
+    environment:
+      ICECAST_MODE:       external
+      ICECAST_HOST:       192.168.1.50
+      ICECAST_SOURCE:     your-source-password
       ICECAST_PORT:       8000
       ICECAST_MOUNT:      /fm
       STARTUP_FREQ:       90800000
