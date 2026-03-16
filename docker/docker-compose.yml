@@ -1,5 +1,8 @@
 services:
   fm-radio:
+    # To use the pre-built image from GitHub Container Registry instead of
+    # building locally, replace the 'build' block with:
+    #   image: ghcr.io/macsatcom/lyrion-fm-radio:latest
     build:
       context: ..
       dockerfile: docker/Dockerfile
