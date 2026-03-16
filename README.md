@@ -90,6 +90,35 @@ Once running:
 - FM Daemon API: `http://<host-ip>:8080`
 - Icecast stream: `http://<host-ip>:8000/fm`
 
+### Using an existing Icecast server
+
+If you already have an Icecast server running on your network, you can skip the built-in one and push the stream there instead. Set `ICECAST_MODE=external` and point `ICECAST_HOST` at your server:
+
+```yaml
+environment:
+  ICECAST_MODE:        external
+  ICECAST_HOST:        192.168.1.50      # IP or hostname of your Icecast server
+  ICECAST_PORT:        "8000"
+  ICECAST_MOUNT:       /fm
+  ICECAST_SOURCE:      your-source-password
+  STARTUP_FREQ:        "90800000"
+  RTL_DEVICE:          "0"
+```
+
+In this mode Icecast is not started inside the container, so you can also remove the `- "8000:8000"` port mapping from `docker-compose.yml` — listeners connect directly to your existing server instead.
+
+> **Note:** `ICECAST_ADMIN_PASS` is only used by the built-in Icecast instance and can be omitted when `ICECAST_MODE=external`.
+
+#### Using a `.env` file
+
+Instead of editing `docker-compose.yml` directly, you can copy the provided example file and fill it in:
+
+```bash
+cp docker/.env.example docker/.env
+# edit docker/.env
+docker compose --env-file .env up --build
+```
+
 ### Multiple RTL-SDR dongles
 
 If you have more than one dongle connected, set `RTL_DEVICE` to the index of the one you want to use (`0`, `1`, `2`, …). Run `rtl_test` on the host to list connected devices and their indices.
