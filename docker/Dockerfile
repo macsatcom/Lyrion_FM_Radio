@@ -19,6 +19,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         cmake \
         build-essential \
         git \
+        ca-certificates \
         gettext-base \
     && rm -rf /var/lib/apt/lists/*
 
