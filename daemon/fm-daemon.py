@@ -14,6 +14,7 @@ to use when multiple are connected.
 """
 
 import os
+import sys
 import re
 import stat
 import base64
@@ -33,6 +34,7 @@ import urllib.request
 
 RTL_FM_BIN         = os.environ.get("RTL_FM_BIN",         "/usr/bin/rtl_fm")
 REDSEA_BIN         = os.environ.get("REDSEA_BIN",         "/usr/local/bin/redsea")
+STEREO_SCRIPT      = os.environ.get("STEREO_SCRIPT",      "/usr/local/bin/fm-stereo.py")
 FIFO_PATH          = os.environ.get("FIFO_PATH",           "/run/fm_pipe")
 
 # Sample rate for rtl_fm output. Must be >= 114 kHz to capture the RDS
@@ -57,6 +59,9 @@ RTL_DEVICE         = int(os.environ.get("RTL_DEVICE",      "0"))
 # Set RDS_DEBUG=1 to print every raw redsea JSON line for inspection.
 RDS_DEBUG          = os.environ.get("RDS_DEBUG", "0") == "1"
 
+# Set STEREO=0 to disable the stereo decoder and fall back to mono (no scipy needed).
+STEREO_ENABLED     = os.environ.get("STEREO", "1") == "1"
+
 # ─── State ────────────────────────────────────────────────────────────────────
 
 state = {
@@ -68,6 +73,7 @@ state = {
 
 rtl_fm_proc = None
 redsea_proc = None
+stereo_proc = None
 ffmpeg_proc = None
 state_lock  = threading.Lock()
 
@@ -132,26 +138,37 @@ def start_ffmpeg(freq=None):
         f"&ice-genre=FM"
     )
 
-    # rtl_fm outputs the FM multiplex at RTL_FM_RATE Hz (mono, s16le).
-    # The lowpass filter strips the pilot (19 kHz), stereo (38 kHz), and
-    # RDS (57 kHz) subcarriers, leaving clean mono audio for listeners.
-    ffmpeg_proc = subprocess.Popen([
-        "ffmpeg", "-loglevel", "error",
-        "-f", "s16le", "-ar", str(RTL_FM_RATE), "-ac", "1",
-        "-i", FIFO_PATH,
-        "-af", f"lowpass=f=15000",
-        "-ar", "48000", "-ac", "1",
-        "-c:a", "libmp3lame", "-b:a", "128k",
-        "-f", "mp3",
-        ice_url,
-    ])
+    if STEREO_ENABLED:
+        # fm-stereo.py outputs 48 kHz stereo s16le — no further filtering needed.
+        ffmpeg_proc = subprocess.Popen([
+            "ffmpeg", "-loglevel", "error",
+            "-f", "s16le", "-ar", "48000", "-ac", "2",
+            "-i", FIFO_PATH,
+            "-ar", "48000", "-ac", "2",
+            "-c:a", "libmp3lame", "-b:a", "192k",
+            "-f", "mp3",
+            ice_url,
+        ])
+    else:
+        # Mono fallback: rtl_fm FM multiplex at RTL_FM_RATE Hz, lowpass strips subcarriers.
+        ffmpeg_proc = subprocess.Popen([
+            "ffmpeg", "-loglevel", "error",
+            "-f", "s16le", "-ar", str(RTL_FM_RATE), "-ac", "1",
+            "-i", FIFO_PATH,
+            "-af", "lowpass=f=15000",
+            "-ar", "48000", "-ac", "1",
+            "-c:a", "libmp3lame", "-b:a", "128k",
+            "-f", "mp3",
+            ice_url,
+        ])
+
     time.sleep(0.5)
     threading.Thread(target=keep_fifo_open, daemon=True).start()
-    print("[daemon] ffmpeg started")
+    print(f"[daemon] ffmpeg started ({'stereo 192k' if STEREO_ENABLED else 'mono 128k'})")
 
 def stop_rtl_fm():
-    global rtl_fm_proc, redsea_proc
-    for proc in (rtl_fm_proc, redsea_proc):
+    global rtl_fm_proc, redsea_proc, stereo_proc
+    for proc in (rtl_fm_proc, redsea_proc, stereo_proc):
         if proc and proc.poll() is None:
             proc.terminate()
             try:
@@ -159,12 +176,65 @@ def stop_rtl_fm():
             except subprocess.TimeoutExpired:
                 proc.kill()
     rtl_fm_proc = None
-    redsea_proc = None
+    redsea_proc  = None
+    stereo_proc  = None
+
+def tee_to_stereo_and_redsea(rtl_stdout, stereo_stdin, redsea_stdin):
+    """
+    Stereo path: reads rtl_fm output and feeds it to both the stereo decoder
+    process (for audio) and redsea (for RDS metadata).
+    """
+    try:
+        while True:
+            data = rtl_stdout.read(4096)
+            if not data:
+                break
+            try:
+                stereo_stdin.write(data)
+            except Exception:
+                break
+            try:
+                redsea_stdin.write(data)
+            except Exception:
+                pass
+    finally:
+        try:
+            stereo_stdin.close()
+        except Exception:
+            pass
+        try:
+            redsea_stdin.close()
+        except Exception:
+            pass
+
+
+def stereo_to_fifo(stereo_stdout):
+    """
+    Reads fm-stereo.py stdout (48 kHz stereo s16le) and writes it to the FIFO
+    for ffmpeg. Runs as a daemon thread for the duration of one rtl_fm session.
+    """
+    try:
+        fifo = open(FIFO_PATH, "wb")
+    except Exception as e:
+        print(f"[daemon] stereo_to_fifo: failed to open FIFO: {e}")
+        return
+    try:
+        while True:
+            data = stereo_stdout.read(4096)
+            if not data:
+                break
+            try:
+                fifo.write(data)
+            except Exception:
+                break
+    finally:
+        fifo.close()
+
 
 def tee_to_fifo_and_redsea(rtl_stdout, redsea_stdin):
     """
-    Reads rtl_fm output and writes it to both the audio FIFO (for ffmpeg)
-    and to redsea's stdin (for RDS decoding), acting as an in-process tee.
+    Mono fallback path: reads rtl_fm output and writes to both the audio FIFO
+    (for ffmpeg) and redsea's stdin (for RDS decoding).
     """
     try:
         fifo = open(FIFO_PATH, "wb")
@@ -233,7 +303,7 @@ def rds_reader(redsea_stdout):
                     print(f"[rds] RT updated: {title!r}")
 
 def start_rtl_fm(freq):
-    global rtl_fm_proc, redsea_proc
+    global rtl_fm_proc, redsea_proc, stereo_proc
     stop_rtl_fm()
     time.sleep(0.3)
 
@@ -253,18 +323,40 @@ def start_rtl_fm(freq):
         REDSEA_BIN, "-r", str(RTL_FM_RATE),
     ], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
 
-    threading.Thread(
-        target=tee_to_fifo_and_redsea,
-        args=(rtl_fm_proc.stdout, redsea_proc.stdin),
-        daemon=True,
-    ).start()
+    if STEREO_ENABLED:
+        stereo_proc = subprocess.Popen(
+            ["python3", STEREO_SCRIPT],
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=sys.stderr,   # fm-stereo.py status lines go to daemon log
+            env={**os.environ, "RTL_FM_RATE": str(RTL_FM_RATE)},
+        )
+        threading.Thread(
+            target=tee_to_stereo_and_redsea,
+            args=(rtl_fm_proc.stdout, stereo_proc.stdin, redsea_proc.stdin),
+            daemon=True,
+        ).start()
+        threading.Thread(
+            target=stereo_to_fifo,
+            args=(stereo_proc.stdout,),
+            daemon=True,
+        ).start()
+    else:
+        threading.Thread(
+            target=tee_to_fifo_and_redsea,
+            args=(rtl_fm_proc.stdout, redsea_proc.stdin),
+            daemon=True,
+        ).start()
+
     threading.Thread(
         target=rds_reader,
         args=(redsea_proc.stdout,),
         daemon=True,
     ).start()
 
-    print(f"[daemon] rtl_fm tuned to {freq / 1_000_000:.1f} MHz (device {RTL_DEVICE}, rate {RTL_FM_RATE} Hz)")
+    print(f"[daemon] rtl_fm tuned to {freq / 1_000_000:.1f} MHz "
+          f"(device {RTL_DEVICE}, rate {RTL_FM_RATE} Hz, "
+          f"{'stereo' if STEREO_ENABLED else 'mono'})")
 
 def stop_ffmpeg():
     global ffmpeg_proc

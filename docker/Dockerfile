@@ -12,6 +12,8 @@ FROM debian:bookworm-slim
 # ── Runtime dependencies ──────────────────────────────────────────────────────
 RUN apt-get update && apt-get install -y --no-install-recommends \
         python3 \
+        python3-numpy \
+        python3-scipy \
         ffmpeg \
         icecast2 \
         rtl-sdr \
@@ -39,10 +41,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # ── Application files ─────────────────────────────────────────────────────────
 COPY daemon/fm-daemon.py         /usr/local/bin/fm-daemon.py
+COPY daemon/fm-stereo.py         /usr/local/bin/fm-stereo.py
 COPY docker/icecast.xml.template /etc/icecast.xml.template
 COPY docker/entrypoint.sh        /entrypoint.sh
 
-RUN chmod +x /usr/local/bin/fm-daemon.py /entrypoint.sh
+RUN chmod +x /usr/local/bin/fm-daemon.py /usr/local/bin/fm-stereo.py /entrypoint.sh
 
 # 8080 = FM Daemon HTTP API, 8000 = Icecast stream
 EXPOSE 8080 8000
