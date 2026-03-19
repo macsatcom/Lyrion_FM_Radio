@@ -237,9 +237,12 @@ STARTUP_FREQ       = 90800000                       # startup frequency in Hz
 
 ### 2. Install
 
+Both scripts are required — `fm-daemon.py` is the HTTP daemon and `fm-stereo.py` is the stereo decoder it calls internally.
+
 ```bash
 sudo cp daemon/fm-daemon.py /usr/local/bin/fm-daemon.py
-sudo chmod +x /usr/local/bin/fm-daemon.py
+sudo cp daemon/fm-stereo.py /usr/local/bin/fm-stereo.py
+sudo chmod +x /usr/local/bin/fm-daemon.py /usr/local/bin/fm-stereo.py
 ```
 
 ### 3. Install as a systemd service
