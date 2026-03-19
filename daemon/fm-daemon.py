@@ -68,7 +68,7 @@ STEREO_ENABLED     = os.environ.get("STEREO", "1") == "1"
 
 # ─── Web UI ───────────────────────────────────────────────────────────────────
 
-WEB_UI_HTML = b"""\
+WEB_UI_HTML = """\
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -513,11 +513,12 @@ class FMHandler(BaseHTTPRequestHandler):
 
         # GET / — web UI
         if parsed.path in ("/", "/index.html"):
+            body = WEB_UI_HTML.encode("utf-8")
             self.send_response(200)
             self.send_header("Content-Type", "text/html; charset=utf-8")
-            self.send_header("Content-Length", len(WEB_UI_HTML))
+            self.send_header("Content-Length", len(body))
             self.end_headers()
-            self.wfile.write(WEB_UI_HTML)
+            self.wfile.write(body)
 
         # GET /config — Icecast connection info for the web UI
         elif parsed.path == "/config":
