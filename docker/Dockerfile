@@ -26,7 +26,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Uses the RTL-SDR Blog fork which adds support for RTL-SDR Blog V4 dongles.
 # Installs rtl_fm and librtlsdr to /usr/local.
 RUN apt-get update && apt-get install -y --no-install-recommends \
-        git ca-certificates cmake build-essential libusb-1.0-0-dev \
+        git ca-certificates cmake build-essential pkg-config libusb-1.0-0-dev \
     && git clone --depth 1 https://github.com/rtlsdrblog/rtl-sdr-blog.git /tmp/rtl-sdr-blog \
     && cmake -S /tmp/rtl-sdr-blog -B /tmp/rtl-sdr-blog/build \
         -DINSTALL_UDEV_RULES=OFF \
@@ -35,7 +35,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && make -C /tmp/rtl-sdr-blog/build install \
     && ldconfig \
     && rm -rf /tmp/rtl-sdr-blog \
-    && apt-get purge -y git cmake build-essential libusb-1.0-0-dev \
+    && apt-get purge -y git cmake build-essential pkg-config libusb-1.0-0-dev \
     && apt-get autoremove -y \
     && rm -rf /var/lib/apt/lists/*
 
