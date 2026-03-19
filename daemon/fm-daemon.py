@@ -50,6 +50,10 @@ ICECAST_ADMIN_PASS = os.environ.get("ICECAST_ADMIN_PASS",  "your-admin-password"
 
 DAEMON_PORT        = int(os.environ.get("DAEMON_PORT",     "8080"))
 
+# 'internal' = Icecast runs inside the same container (default)
+# 'external' = Icecast runs on a separate host (ICECAST_HOST must be set)
+ICECAST_MODE       = os.environ.get("ICECAST_MODE",       "internal")
+
 # Default startup frequency in Hz (e.g. 90800000 = 90.8 MHz)
 STARTUP_FREQ       = int(os.environ.get("STARTUP_FREQ",    "90800000"))
 
@@ -61,6 +65,108 @@ RDS_DEBUG          = os.environ.get("RDS_DEBUG", "0") == "1"
 
 # Set STEREO=0 to disable the stereo decoder and fall back to mono (no scipy needed).
 STEREO_ENABLED     = os.environ.get("STEREO", "1") == "1"
+
+# ─── Web UI ───────────────────────────────────────────────────────────────────
+
+WEB_UI_HTML = b"""\
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FM Radio</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #111827; color: #e5e7eb;
+    font-family: ui-monospace, monospace;
+    min-height: 100vh;
+    display: flex; flex-direction: column; align-items: center;
+    justify-content: center; gap: 1.5rem; padding: 2rem;
+  }
+  h1 { font-size: 1.1rem; letter-spacing: 0.25em; color: #6b7280; text-transform: uppercase; }
+  #freq-display { font-size: 4rem; font-weight: bold; color: #34d399; letter-spacing: 0.05em; }
+  #rds-ps { font-size: 1.3rem; color: #fbbf24; min-height: 1.6rem; }
+  #rds-rt { font-size: 0.9rem; color: #9ca3af; min-height: 1.2rem; }
+  audio { width: 100%; max-width: 420px; accent-color: #34d399; }
+  .tune-row { display: flex; gap: 0.5rem; }
+  input[type=number] {
+    background: #1f2937; color: #34d399; border: 1px solid #374151;
+    padding: 0.6rem 0.8rem; font-size: 1.2rem; font-family: inherit;
+    width: 130px; border-radius: 6px; outline: none;
+  }
+  input[type=number]:focus { border-color: #34d399; }
+  button {
+    background: #34d399; color: #111827; border: none;
+    padding: 0.6rem 1.4rem; font-size: 1rem; font-weight: bold;
+    cursor: pointer; border-radius: 6px; font-family: inherit;
+  }
+  button:hover { background: #6ee7b7; }
+  #status-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: #374151; display: inline-block; margin-right: 0.4rem;
+  }
+  #status-dot.playing { background: #34d399; }
+</style>
+</head>
+<body>
+<h1>FM Radio</h1>
+<div id="freq-display">-- MHz</div>
+<div id="rds-ps"></div>
+<div id="rds-rt"></div>
+<audio id="player" controls></audio>
+<div class="tune-row">
+  <input type="number" id="freq-input" step="0.1" min="87.5" max="108.0" placeholder="87.5 – 108.0">
+  <button onclick="tune()">Tune</button>
+</div>
+<div style="font-size:0.8rem; color:#4b5563;">
+  <span id="status-dot"></span><span id="status-text">loading...</span>
+</div>
+<script>
+let streamUrl = '';
+
+async function init() {
+  const cfg = await fetch('/config').then(r => r.json());
+  const host = cfg.icecast_mode === 'internal'
+    ? window.location.hostname
+    : cfg.icecast_host;
+  streamUrl = 'http://' + host + ':' + cfg.icecast_port + cfg.icecast_mount;
+  document.getElementById('player').src = streamUrl;
+  poll();
+}
+
+async function tune() {
+  const mhz = parseFloat(document.getElementById('freq-input').value);
+  if (isNaN(mhz) || mhz < 87.5 || mhz > 108.0) return;
+  await fetch('/tune?freq=' + Math.round(mhz * 1e6), { method: 'POST' });
+}
+
+document.getElementById('freq-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') tune();
+});
+
+async function poll() {
+  try {
+    const s = await fetch('/status').then(r => r.json());
+    if (s.freq) {
+      document.getElementById('freq-display').textContent =
+        (s.freq / 1e6).toFixed(1) + ' MHz';
+    }
+    document.getElementById('rds-ps').textContent = s.rds_ps || '';
+    document.getElementById('rds-rt').textContent = s.rds_rt || '';
+    const playing = s.status === 'playing';
+    document.getElementById('status-dot').className = playing ? 'playing' : '';
+    document.getElementById('status-text').textContent =
+      playing ? 'receiving' : s.status;
+  } catch(e) {}
+  setTimeout(poll, 1000);
+}
+
+init();
+</script>
+</body>
+</html>
+"""
 
 # ─── State ────────────────────────────────────────────────────────────────────
 
@@ -405,8 +511,25 @@ class FMHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         parsed = urlparse(self.path)
 
+        # GET / — web UI
+        if parsed.path in ("/", "/index.html"):
+            self.send_response(200)
+            self.send_header("Content-Type", "text/html; charset=utf-8")
+            self.send_header("Content-Length", len(WEB_UI_HTML))
+            self.end_headers()
+            self.wfile.write(WEB_UI_HTML)
+
+        # GET /config — Icecast connection info for the web UI
+        elif parsed.path == "/config":
+            json_response(self, 200, {
+                "icecast_mode":  ICECAST_MODE,
+                "icecast_host":  ICECAST_HOST,
+                "icecast_port":  ICECAST_PORT,
+                "icecast_mount": ICECAST_MOUNT,
+            })
+
         # GET /status
-        if parsed.path == "/status":
+        elif parsed.path == "/status":
             with state_lock:
                 json_response(self, 200, state)
 
@@ -432,6 +555,7 @@ class FMHandler(BaseHTTPRequestHandler):
 
         else:
             json_response(self, 404, {"error": "not found"})
+
 
     def do_POST(self):
         parsed = urlparse(self.path)
@@ -489,7 +613,9 @@ if __name__ == "__main__":
 
     print(f"[daemon] HTTP API listening on port {DAEMON_PORT}")
     print("[daemon] Endpoints:")
+    print("  GET  /              (web UI)")
     print("  GET  /status")
+    print("  GET  /config")
     print("  GET  /listen/90.8      (MHz)")
     print("  GET  /listen/90800000  (Hz)")
     print("  POST /tune?freq=90800000")

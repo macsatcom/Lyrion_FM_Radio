@@ -53,6 +53,18 @@ Re-plug the dongle and verify with `rtl_test`.
 
 ---
 
+## Web UI
+
+The daemon includes a built-in web interface accessible at `http://<host>:8080` — no extra software needed.
+
+Features:
+- Live frequency display, updated from the daemon
+- RDS station name and programme text (when available)
+- Built-in audio player — click play to start listening
+- Frequency input in MHz with a Tune button (Enter also works)
+
+---
+
 ## Option A — Docker (recommended for new users)
 
 This is the easiest way to get started. Everything runs in a single container: rtl_fm, ffmpeg, and Icecast are all included — no manual software installation needed.
