@@ -32,7 +32,7 @@ import urllib.request
 # ─── Configuration ────────────────────────────────────────────────────────────
 # Edit these values to match your setup, or override via environment variables.
 
-RTL_FM_BIN         = os.environ.get("RTL_FM_BIN",         "/usr/bin/rtl_fm")
+RTL_FM_BIN         = os.environ.get("RTL_FM_BIN",         "/usr/local/bin/rtl_fm")
 REDSEA_BIN         = os.environ.get("REDSEA_BIN",         "/usr/local/bin/redsea")
 STEREO_SCRIPT      = os.environ.get("STEREO_SCRIPT",      "/usr/local/bin/fm-stereo.py")
 FIFO_PATH          = os.environ.get("FIFO_PATH",           "/run/fm_pipe")
