@@ -3,7 +3,7 @@ Stream FM radio to Lyrion Music Server, inclusive the option to change frequency
 
 FM Radio reception via RTL-SDR for Lyrion Music Server (LMS).
 
-Receives FM radio using an RTL-SDR USB dongle and [NGSoftFM](https://github.com/f4exb/ngsoftfm), streams it to an Icecast server, and exposes an HTTP API for tuning. An LMS plugin integrates it into the Radio menu with a configurable station list.
+Receives FM radio using an RTL-SDR USB dongle and `rtl_fm` (from the [RTL-SDR Blog fork](https://github.com/rtlsdrblog/rtl-sdr-blog)), streams it to an Icecast server, and exposes an HTTP API for tuning. An LMS plugin integrates it into the Radio menu with a configurable station list.
 
 ![FM Radio plugin icon](LMSPlugin/FMRadio/HTML/EN/plugins/FMRadio/html/images/FMRadio_svg.png)
 
@@ -14,11 +14,13 @@ Receives FM radio using an RTL-SDR USB dongle and [NGSoftFM](https://github.com/
 ```
 RTL-SDR dongle
       ↓
-   NGSoftFM  (FM demodulation, stereo PCM)
+   rtl_fm  (FM demodulation, raw FM multiplex)
+      ↓
+ fm-stereo.py  (scipy DSP — stereo decoding)
       ↓
   named pipe
       ↓
-   ffmpeg  (encode to MP3)
+   ffmpeg  (encode to MP3 stereo 192k)
       ↓
    Icecast  (HTTP audio stream)
       ↑
@@ -53,7 +55,7 @@ Re-plug the dongle and verify with `rtl_test`.
 
 ## Option A — Docker (recommended for new users)
 
-This is the easiest way to get started. Everything runs in a single container: NGSoftFM, ffmpeg, and Icecast are all included — no manual software installation needed.
+This is the easiest way to get started. Everything runs in a single container: rtl_fm, ffmpeg, and Icecast are all included — no manual software installation needed.
 
 Pre-built images for **amd64** and **arm64** are published automatically to GitHub Container Registry on every release.
 
@@ -142,7 +144,7 @@ Then build and start:
 docker compose up --build
 ```
 
-The first build takes a few minutes (NGSoftFM is compiled from source). Subsequent starts are fast.
+The first build takes a few minutes (rtl-sdr-blog and redsea are compiled from source). Subsequent starts are fast.
 
 Once running:
 - FM Daemon API: `http://<host-ip>:8080`
@@ -191,25 +193,26 @@ docker compose down
 
 ## Option B — Manual installation
 
-Use this if you prefer to run the daemon directly on your server without Docker, or if you already have NGSoftFM and Icecast set up.
+Use this if you prefer to run the daemon directly on your server without Docker.
 
 ### Prerequisites
 
 - Linux server (Debian/Ubuntu recommended)
 - RTL-SDR USB dongle connected and working
-- [NGSoftFM](https://github.com/f4exb/ngsoftfm) built and installed
+- `rtl_fm` installed — use the [RTL-SDR Blog fork](https://github.com/rtlsdrblog/rtl-sdr-blog) for V4 dongle support, or `apt install rtl-sdr` for older dongles
+- `python3-scipy` installed (`apt install python3-scipy`) — required for stereo decoding
 - `ffmpeg` installed (`apt install ffmpeg`)
 - Icecast2 server running (`apt install icecast2`)
 - Lyrion Music Server 8.x or 9.x
 
-> **Note:** Getting your RTL-SDR dongle working and building NGSoftFM is outside the scope of this guide. See the [rtl-sdr quickstart](https://www.rtl-sdr.com/rtl-sdr-quick-start-guide/) and the [NGSoftFM README](https://github.com/f4exb/ngsoftfm) for instructions. Verify your setup works by running `softfm -t rtlsdr -c freq=90800000 -R -` before proceeding.
+> **Note:** Verify your RTL-SDR setup works by running `rtl_fm -f 90800000 -M wbfm -s 171000 - | aplay -r 171000 -f S16_LE` before proceeding.
 
 ### 1. Configure
 
 Edit `daemon/fm-daemon.py` and fill in the configuration section at the top:
 
 ```python
-SOFTFM_BIN         = "/usr/local/bin/softfm"       # path to your softfm binary
+RTL_FM_BIN         = "rtl_fm"                      # path to rtl_fm binary
 ICECAST_HOST       = "your-icecast-host"            # Icecast hostname or IP
 ICECAST_PORT       = 8000                           # Icecast port
 ICECAST_MOUNT      = "/fm"                          # Icecast mount point
