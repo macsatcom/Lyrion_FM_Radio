@@ -9,7 +9,7 @@
             <desc lang="EN">FM Radio reception via RTL-SDR with stereo audio and live RDS metadata (station name and RadioText)</desc>
             <url>https://github.com/macsatcom/Lyrion_FM_Radio/releases/download/plugin-v1.06/FMRadio-1.06.zip</url>
             <link>https://github.com/macsatcom/Lyrion_FM_Radio</link>
-            <sha>02ff295b9ce545b92b2c57857fa1ad72feff1315</sha>
+            <sha>9fcb1f2d01a943b8395a93a82f271db306e229fc</sha>
             <creator>Kasper S Nielsen</creator>
             <creatorEmail>kasper@smsweb.dk</creatorEmail>
         </plugin>
