@@ -9,6 +9,8 @@ RestartSec=5
 User=root
 StandardOutput=journal
 StandardError=journal
+# Volume boost applied by ffmpeg. Use ffmpeg syntax: e.g. 6dB, 10dB, 2.0 (linear).
+Environment=VOLUME_BOOST=6dB
 
 [Install]
 WantedBy=multi-user.target

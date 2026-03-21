@@ -30,4 +30,6 @@ services:
       STARTUP_FREQ:       ${STARTUP_FREQ:-90800000}
       RTL_DEVICE:         ${RTL_DEVICE:-0}
       DAEMON_PORT:        ${DAEMON_PORT:-8080}
+      # Volume boost applied by ffmpeg. Use ffmpeg syntax: e.g. 6dB, 10dB, 2.0 (linear).
+      VOLUME_BOOST:       ${VOLUME_BOOST:-6dB}
     restart: unless-stopped

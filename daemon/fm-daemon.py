@@ -66,6 +66,10 @@ RDS_DEBUG          = os.environ.get("RDS_DEBUG", "0") == "1"
 # Set STEREO=0 to disable the stereo decoder and fall back to mono (no scipy needed).
 STEREO_ENABLED     = os.environ.get("STEREO", "1") == "1"
 
+# Volume boost applied by ffmpeg before encoding. Uses ffmpeg volume filter syntax:
+# e.g. "6dB", "10dB", "2.0" (linear). Set to "0dB" to disable.
+VOLUME_BOOST       = os.environ.get("VOLUME_BOOST", "6dB")
+
 # ─── Web UI ───────────────────────────────────────────────────────────────────
 
 WEB_UI_HTML = """\
@@ -250,6 +254,7 @@ def start_ffmpeg(freq=None):
             "ffmpeg", "-loglevel", "error",
             "-f", "s16le", "-ar", "48000", "-ac", "2",
             "-i", FIFO_PATH,
+            "-af", f"volume={VOLUME_BOOST}",
             "-ar", "48000", "-ac", "2",
             "-c:a", "libmp3lame", "-b:a", "192k",
             "-f", "mp3",
@@ -261,7 +266,7 @@ def start_ffmpeg(freq=None):
             "ffmpeg", "-loglevel", "error",
             "-f", "s16le", "-ar", str(RTL_FM_RATE), "-ac", "1",
             "-i", FIFO_PATH,
-            "-af", "lowpass=f=15000",
+            "-af", f"lowpass=f=15000,volume={VOLUME_BOOST}",
             "-ar", "48000", "-ac", "1",
             "-c:a", "libmp3lame", "-b:a", "128k",
             "-f", "mp3",
@@ -270,7 +275,7 @@ def start_ffmpeg(freq=None):
 
     time.sleep(0.5)
     threading.Thread(target=keep_fifo_open, daemon=True).start()
-    print(f"[daemon] ffmpeg started ({'stereo 192k' if STEREO_ENABLED else 'mono 128k'})")
+    print(f"[daemon] ffmpeg started ({'stereo 192k' if STEREO_ENABLED else 'mono 128k'}, volume={VOLUME_BOOST})")
 
 def stop_rtl_fm():
     global rtl_fm_proc, redsea_proc, stereo_proc
